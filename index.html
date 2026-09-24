@@ -50,6 +50,12 @@
     color:var(--ink-soft);
     font-size:14px;
   }
+  .header-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
   #item-count{
     font-family:'IBM Plex Mono',monospace;
     font-size:13px;
@@ -60,6 +66,25 @@
     border-radius:3px;
     white-space:nowrap;
   }
+  #sheet-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--white);
+    background:var(--teal);
+    border:1px solid var(--teal);
+    padding:6px 14px;
+    border-radius:3px;
+    text-decoration:none;
+    white-space:nowrap;
+    transition:background .15s ease;
+    cursor:pointer;
+  }
+  #sheet-link svg{stroke:var(--white);flex-shrink:0;}
+  #sheet-link:hover{background:var(--teal-deep);border-color:var(--teal-deep);}
 
   .controls{
     display:flex;
@@ -214,10 +239,16 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Katalog Barang</h1>
+      <h1>Cari Barang Serangkailah.id</h1>
       <p>Cari dan telusuri daftar barang dari basis data spreadsheet</p>
     </div>
-    <div id="item-count">memuat data…</div>
+    <div class="header-actions">
+      <div id="item-count">memuat data…</div>
+      <button id="sheet-link" type="button" onclick="checkSheetPassword(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M14 3h7v7"></path><path d="M10 14 21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path></svg>
+        Update Barang
+      </button>
+    </div>
   </header>
 
   <div class="controls">
@@ -258,12 +289,34 @@
 </div>
 
 <script>
+const SHEET_PASSWORD_HASH = "7a989c6a07b7a9428e3ccdce195be80aecd15340ec5cb772ac1b055aa759cf03";
+const SHEET_EDIT_URL = "https://docs.google.com/spreadsheets/d/1TtpnVCYih304eRIH-LTowS-z3YZ-ADAq5duEhXRP7bI/edit?usp=sharing";
+
+async function sha256Hex(text){
+  const buf = new TextEncoder().encode(text);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkSheetPassword(event){
+  event.preventDefault();
+  const input = prompt("Masukkan password untuk membuka spreadsheet:");
+  if(input === null) return false; // dibatalkan
+  const hash = await sha256Hex(input);
+  if(hash === SHEET_PASSWORD_HASH){
+    window.open(SHEET_EDIT_URL, '_blank', 'noopener,noreferrer');
+  }else{
+    alert("Password salah.");
+  }
+  return false;
+}
+
 const SHEET_ID = "1TtpnVCYih304eRIH-LTowS-z3YZ-ADAq5duEhXRP7bI";
 const CSV_URLS = [
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
 ];
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
 let allItems = [];
 let filteredItems = [];

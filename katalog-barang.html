@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katalog Barang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --paper:#F6F5F0;
+    --ink:#20281F;
+    --ink-soft:#5B6459;
+    --line:#D8D5C9;
+    --teal:#2F6F5E;
+    --teal-deep:#20493D;
+    --amber:#C98A3E;
+    --white:#FFFFFF;
+    --row-alt:#EFEEE7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:32px 20px 60px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:24px;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:700;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  #item-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--teal-deep);
+    background:var(--white);
+    border:1px solid var(--line);
+    padding:6px 12px;
+    border-radius:3px;
+    white-space:nowrap;
+  }
+
+  .controls{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .search-box{
+    flex:1 1 320px;
+    position:relative;
+  }
+  .search-box input{
+    width:100%;
+    padding:12px 14px 12px 40px;
+    font-size:15px;
+    font-family:inherit;
+    border:1.5px solid var(--line);
+    border-radius:4px;
+    background:var(--white);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  .search-box input:focus{border-color:var(--teal);}
+  .search-box svg{
+    position:absolute;
+    left:13px;
+    top:50%;
+    transform:translateY(-50%);
+    width:16px;
+    height:16px;
+    stroke:var(--ink-soft);
+  }
+  select{
+    padding:12px 14px;
+    font-size:14px;
+    font-family:inherit;
+    border:1.5px solid var(--line);
+    border-radius:4px;
+    background:var(--white);
+    color:var(--ink);
+    outline:none;
+    min-width:220px;
+  }
+  select:focus{border-color:var(--teal);}
+
+  .table-shell{
+    border:1.5px solid var(--ink);
+    border-radius:4px;
+    overflow:hidden;
+    background:var(--white);
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  thead th{
+    position:sticky;
+    top:0;
+    background:var(--teal-deep);
+    color:var(--white);
+    text-align:left;
+    padding:12px 14px;
+    font-weight:600;
+    font-size:12.5px;
+    letter-spacing:.02em;
+    border-bottom:1px solid var(--teal-deep);
+  }
+  tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:nth-child(even){background:var(--row-alt);}
+  tbody tr:hover{background:#E4EFEA;}
+  td.kode{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  td.nama{font-weight:500;}
+  td.kategori{color:var(--ink-soft);font-size:13px;}
+  .no-col{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:12.5px;width:44px;}
+
+  .state-row td{
+    text-align:center;
+    padding:48px 20px;
+    color:var(--ink-soft);
+  }
+  .spinner{
+    display:inline-block;
+    width:22px;height:22px;
+    border:3px solid var(--line);
+    border-top-color:var(--teal);
+    border-radius:50%;
+    animation:spin .8s linear infinite;
+    margin-bottom:10px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .retry-btn{
+    margin-top:12px;
+    padding:8px 16px;
+    background:var(--teal);
+    color:var(--white);
+    border:none;
+    border-radius:4px;
+    font-family:inherit;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .retry-btn:hover{background:var(--teal-deep);}
+
+  .pager{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+  .pager .info{font-size:13px;color:var(--ink-soft);}
+  .pager .btns{display:flex;gap:8px;align-items:center;}
+  .pager button{
+    padding:8px 14px;
+    border:1.5px solid var(--line);
+    background:var(--white);
+    border-radius:4px;
+    font-family:inherit;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .pager button:disabled{opacity:.4;cursor:not-allowed;}
+  .pager button:not(:disabled):hover{border-color:var(--teal);color:var(--teal-deep);}
+  .pager .page-indicator{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:0 6px;
+  }
+
+  @media (max-width:640px){
+    header{flex-direction:column;align-items:flex-start;}
+    thead th:nth-child(3), tbody td:nth-child(3){display:none;}
+    td.kategori{max-width:120px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Katalog Barang</h1>
+      <p>Cari dan telusuri daftar barang dari basis data spreadsheet</p>
+    </div>
+    <div id="item-count">memuat data…</div>
+  </header>
+
+  <div class="controls">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="search" placeholder="Cari berdasarkan kode atau nama barang…" autocomplete="off">
+    </div>
+    <select id="kategori-filter">
+      <option value="">Semua kategori</option>
+    </select>
+  </div>
+
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th class="no-col">No</th>
+          <th>Kode Barang</th>
+          <th>Nama Barang</th>
+          <th>Satuan</th>
+          <th>Kategori</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr class="state-row"><td colspan="6"><div class="spinner"></div><div>Mengambil data dari spreadsheet…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager" id="pager" style="display:none;">
+    <div class="info" id="pager-info"></div>
+    <div class="btns">
+      <button id="prev-btn">← Sebelumnya</button>
+      <span class="page-indicator" id="page-indicator"></span>
+      <button id="next-btn">Berikutnya →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1TtpnVCYih304eRIH-LTowS-z3YZ-ADAq5duEhXRP7bI";
+const CSV_URLS = [
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
+];
+const PAGE_SIZE = 10;
+
+let allItems = [];
+let filteredItems = [];
+let currentPage = 1;
+
+const tableBody = document.getElementById('table-body');
+const itemCountEl = document.getElementById('item-count');
+const searchInput = document.getElementById('search');
+const kategoriFilter = document.getElementById('kategori-filter');
+const pager = document.getElementById('pager');
+const pagerInfo = document.getElementById('pager-info');
+const pageIndicator = document.getElementById('page-indicator');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+
+function showState(html){
+  tableBody.innerHTML = `<tr class="state-row"><td colspan="6">${html}</td></tr>`;
+  pager.style.display = 'none';
+}
+
+async function loadData(urlIndex = 0){
+  if(urlIndex >= CSV_URLS.length){
+    showState(`
+      <div style="font-weight:600;color:var(--ink);margin-bottom:4px;">Tidak dapat memuat data</div>
+      <div style="font-size:13px;">Pastikan spreadsheet dibagikan dengan akses "Siapa saja yang memiliki link — Pelihat", lalu coba lagi.</div>
+      <button class="retry-btn" onclick="loadData(0)">Coba lagi</button>
+    `);
+    return;
+  }
+  showState(`<div class="spinner"></div><div>Mengambil data dari spreadsheet…</div>`);
+  try{
+    const res = await fetch(CSV_URLS[urlIndex]);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const parsed = Papa.parse(text.trim(), { skipEmptyLines: true });
+    const rows = parsed.data;
+    if(!rows || rows.length < 2) throw new Error('Data kosong');
+
+    // First row = header. Expected: No, Kode Barang, Nama Barang, Merk, Type, Satuan, Kategori...
+    const items = [];
+    for(let i = 1; i < rows.length; i++){
+      const r = rows[i];
+      const no = (r[0] || '').trim();
+      const kode = (r[1] || '').trim();
+      const nama = (r[2] || '').trim();
+      if(!nama) continue; // skip blank rows
+      items.push({
+        no: no,
+        kode: kode,
+        nama: nama,
+        merk: (r[3] || '').trim(),
+        type: (r[4] || '').trim(),
+        satuan: (r[5] || '').trim(),
+        kategori: (r[6] || '').trim()
+      });
+    }
+    if(items.length === 0) throw new Error('Tidak ada baris terbaca');
+
+    allItems = items;
+    populateKategoriFilter(items);
+    applyFilters();
+  }catch(err){
+    loadData(urlIndex + 1);
+  }
+}
+
+function populateKategoriFilter(items){
+  const cats = Array.from(new Set(items.map(i => i.kategori).filter(Boolean))).sort();
+  kategoriFilter.innerHTML = '<option value="">Semua kategori</option>' +
+    cats.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+function applyFilters(){
+  const q = searchInput.value.trim().toLowerCase();
+  const cat = kategoriFilter.value;
+  filteredItems = allItems.filter(i => {
+    const matchesCat = !cat || i.kategori === cat;
+    if(!matchesCat) return false;
+    if(!q) return true;
+    return (
+      i.kode.toLowerCase().includes(q) ||
+      i.nama.toLowerCase().includes(q)
+    );
+  });
+  currentPage = 1;
+  render();
+}
+
+function render(){
+  itemCountEl.textContent = `${filteredItems.length.toLocaleString('id-ID')} barang`;
+
+  if(filteredItems.length === 0){
+    showState(`
+      <div style="font-weight:600;margin-bottom:4px;">Tidak ditemukan</div>
+      <div style="font-size:13px;">Coba kata kunci atau kategori lain.</div>
+    `);
+    return;
+  }
+
+  const totalPages = Math.ceil(filteredItems.length / PAGE_SIZE);
+  currentPage = Math.min(currentPage, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredItems.slice(start, start + PAGE_SIZE);
+
+  tableBody.innerHTML = pageItems.map(i => `
+    <tr>
+      <td class="no-col">${escapeHtml(i.no)}</td>
+      <td class="kode">${escapeHtml(i.kode)}</td>
+      <td class="nama">${escapeHtml(i.nama)}</td>
+      <td>${escapeHtml(i.satuan)}</td>
+      <td class="kategori">${escapeHtml(i.kategori)}</td>
+    </tr>
+  `).join('');
+
+  pager.style.display = 'flex';
+  pagerInfo.textContent = `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, filteredItems.length)} dari ${filteredItems.length}`;
+  pageIndicator.textContent = `${currentPage} / ${totalPages}`;
+  prevBtn.disabled = currentPage <= 1;
+  nextBtn.disabled = currentPage >= totalPages;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+searchInput.addEventListener('input', debounce(applyFilters, 150));
+kategoriFilter.addEventListener('change', applyFilters);
+prevBtn.addEventListener('click', () => { currentPage--; render(); window.scrollTo({top:0,behavior:'smooth'}); });
+nextBtn.addEventListener('click', () => { currentPage++; render(); window.scrollTo({top:0,behavior:'smooth'}); });
+
+function debounce(fn, ms){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+loadData();
+</script>
+</body>
+</html>
